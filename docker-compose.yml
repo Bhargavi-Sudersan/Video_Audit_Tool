@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Persist demo videos / local review store / Drive cache across restarts.
+      - ./backend/data:/app/data
+      # Mount a service-account key read-only if using the Google backend.
+      - ./secrets:/app/secrets:ro
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped

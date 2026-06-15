@@ -1,0 +1,48 @@
+stages:
+  - test
+  - build
+
+backend-tests:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends libglib2.0-0 ffmpeg
+    - cd backend
+    - pip install --no-cache-dir -r requirements.txt pytest
+  script:
+    - python -m pytest tests -q
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+frontend-build:
+  stage: build
+  image: node:20-alpine
+  before_script:
+    - cd frontend
+    - npm install
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+# Optional: build & push container images on tagged releases.
+# Uncomment and set CI/CD variables (CI_REGISTRY_USER, CI_REGISTRY_PASSWORD).
+#
+# docker-images:
+#   stage: build
+#   image: docker:27
+#   services: [docker:27-dind]
+#   script:
+#     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+#     - docker build -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_TAG" ./backend
+#     - docker build -t "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_TAG" ./frontend
+#     - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_TAG"
+#     - docker push "$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_TAG"
+#   rules:
+#     - if: $CI_COMMIT_TAG
